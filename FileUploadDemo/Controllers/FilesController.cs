@@ -32,8 +32,16 @@ namespace FileUploadDemo.Controllers
 
                 using (var contentStream = file.OpenReadStream())
                 {
-                    // TODO: add other properties
-                    var fileBlockInfo = new FileBlockInfo { FileName = file.FileName, FileSize = file.Length };
+                    var fileBlockInfo = new FileBlockInfo
+                    {
+                        FileId = Request.Form["flowIdentifier"],
+                        BlockId = Request.Form["flowIdentifier"],
+                        FileName = Request.Form["flowFilename"],
+                        FileSize = long.Parse(Request.Form["flowTotalSize"]),
+                        BlockSize = long.Parse(Request.Form["flowChunkSize"]),
+                        SequenceNum = int.Parse(Request.Form["flowChunkNumber"]),
+                        TotalBlocksCount = int.Parse(Request.Form["flowTotalChunks"])
+                    };
 
                     await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream);
                 }
@@ -42,8 +50,8 @@ namespace FileUploadDemo.Controllers
             return Ok();
         }
 
-        [HttpPost("complete_upload")]
-        public Task UploadFile([FromBody]string fileId)
+        [HttpPost("aggregate")]
+        public Task AggregateBlocks([FromBody]string fileId)
         {
             return FileUploadManager.CompleteUploadAsync(fileId);
         }

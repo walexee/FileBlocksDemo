@@ -1,14 +1,19 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace FileUploadDemo.FileUpload
 {
-    public class FileMetadataRepository : IDisposable, IFileMetadataRepository
+    public class FileMetadataRepository : IFileMetadataRepository, IDisposable
     {
-        private readonly string _storageDirectory;
-        private readonly ConcurrentDictionary<string, FileInfo> _fileStore;
+        private const string StoreFileName = "files_metadata.json";
+        private readonly string StoreFilePath;
+        private readonly ConcurrentDictionary<string, FileMetadata> FileMetadataStore;
 
         private readonly System.Timers.Timer _timer;
         private const int _timerInterval = 1000; // milliseconds
@@ -17,43 +22,62 @@ namespace FileUploadDemo.FileUpload
 
         public FileMetadataRepository(IConfiguration configuration)
         {
-            _fileStore = new ConcurrentDictionary<string, FileInfo>();
-            _storageDirectory = configuration.GetValue<string>("FileStoreDirectory");
+            StoreFilePath = Path.Combine(configuration.GetValue<string>("FileStoreDirectory"), StoreFileName);
+
+            var storeContent = LoadStoreContent();
+
+            FileMetadataStore = new ConcurrentDictionary<string, FileMetadata>(storeContent);
+
             _timer = new System.Timers.Timer(_timerInterval);
             _timer.Elapsed += SyncFileStore;
         }
 
-        public FileInfo GetFileInfoAsync(string fileId)
+        public FileMetadata Get(string fileId)
         {
-            _fileStore.TryGetValue(fileId, out var fileInfo);
+            FileMetadataStore.TryGetValue(fileId, out var fileInfo);
 
             return fileInfo;
         }
 
-        public void SaveFileInfoAsync(FileInfo fileInfo)
+        public void Save(FileMetadata fileInfo)
         {
-            _fileStore.AddOrUpdate(fileInfo.Id, fileInfo, (key, value) => value);
+            FileMetadataStore.AddOrUpdate(fileInfo.Id, fileInfo, (key, value) => value);
 
             Interlocked.Exchange(ref _hasChanges, 1);
         }
 
-        public void DeleteFileAsync(string fileId)
+        public void Delete(string fileId)
         {
-            _fileStore.TryRemove(fileId, out var fileInfo);
+            FileMetadataStore.TryRemove(fileId, out var fileInfo);
 
             Interlocked.Exchange(ref _hasChanges, 1);
-        }
-
-        private void SyncFileStore(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            // TODO: sync the dictionary with the database
-            throw new NotImplementedException();
         }
 
         public void Dispose()
         {
             _timer.Elapsed -= SyncFileStore;
             _timer.Dispose();
+        }
+
+        private void SyncFileStore(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            var contentJson = JsonConvert.SerializeObject(FileMetadataStore.Values, Formatting.Indented);
+
+            File.WriteAllText(StoreFilePath, contentJson);
+        }
+
+        private IDictionary<string, FileMetadata> LoadStoreContent()
+        {
+            var storeContent = File.ReadAllText(StoreFilePath);
+
+            if (!string.IsNullOrWhiteSpace(storeContent))
+            {
+                var content = JsonConvert.DeserializeObject<List<FileMetadata>>(storeContent);
+
+                return content.ToDictionary(x => x.Id);
+            }
+
+            return new Dictionary<string, FileMetadata>();
         }
     }
 }

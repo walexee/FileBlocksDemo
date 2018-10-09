@@ -2,9 +2,10 @@
 {
     public interface IFileMetadataRepository
     {
-        void DeleteFileAsync(string fileId);
-        void Dispose();
-        FileInfo GetFileInfoAsync(string fileId);
-        void SaveFileInfoAsync(FileInfo fileInfo);
+        FileMetadata Get(string fileId);
+
+        void Save(FileMetadata fileInfo);
+
+        void Delete(string fileId);
     }
 }

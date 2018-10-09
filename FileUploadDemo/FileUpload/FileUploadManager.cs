@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileUploadDemo.FileUpload
@@ -48,7 +46,7 @@ namespace FileUploadDemo.FileUpload
 
             try
             {
-                await uploader.CompleteUploadAsync(fileId);
+                await uploader.AggregateBlocksAsync();
             }
             finally
             {

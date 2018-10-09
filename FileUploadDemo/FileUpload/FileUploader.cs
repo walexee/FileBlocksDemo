@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,16 +9,18 @@ namespace FileUploadDemo.FileUpload
 {
     public class FileUploader
     {
-        
         private const string FileBlockExtension = ".block";
         private readonly string _storageDirectory;
+        private readonly FileMetadata _fileMetadata;
+
         private int _initialized = 0;
         private int _initializing = 0;
-        private string _directory;
+
 
         public FileUploader(IConfiguration configuration)
         {
             _storageDirectory = configuration.GetValue<string>("FileStoreDirectory");
+            _fileMetadata = new FileMetadata();
         }
 
         public async Task UploadFileBlockAsync(FileBlockInfo fileBlockInfo, Stream fileContent)
@@ -32,12 +35,18 @@ namespace FileUploadDemo.FileUpload
             await DoUploadFileBlock(fileBlockInfo, fileContent);
         }
 
-        public async Task AggregateBlocksAsync(FileBlockInfo info)
+        public async Task AggregateBlocksAsync()
         {
-            var allBlocks = Directory.EnumerateFiles(_directory, $"*{FileBlockExtension}");
-            var filename = Path.Combine(_directory, info.FileName);
+            var allBlocks = Directory.EnumerateFiles(_fileMetadata.Location, $"*{FileBlockExtension}")?.OrderBy(b => b);
 
-            using (var fileStream = File.Create(filename))
+            if (!allBlocks.Any())
+            {
+                throw new InvalidOperationException("No file blocks available");
+            }
+
+            var filePath = Path.Combine(_fileMetadata.Location, _fileMetadata.FileName);
+
+            using (var fileStream = File.Create(filePath))
             {
                 foreach (var block in allBlocks)
                 {
@@ -51,15 +60,10 @@ namespace FileUploadDemo.FileUpload
             }
         }
 
-        public async Task CompleteUploadAsync(string fileId)
-        {
-            throw new NotImplementedException();
-        }
-
         private async Task DoUploadFileBlock(FileBlockInfo fileBlockInfo, Stream fileContent)
         {
             var filename = GetFileBlockName(fileBlockInfo);
-            var filepath = Path.Combine(_directory, filename);
+            var filepath = Path.Combine(_fileMetadata.Location, filename);
 
             using (var fileStream = File.Create(filepath))
             {
@@ -79,11 +83,17 @@ namespace FileUploadDemo.FileUpload
             {
                 try
                 {
-                    _directory = Path.Combine(_storageDirectory, fileBlockInfo.FileId);
+                    //_directory = Path.Combine(_storageDirectory, fileBlockInfo.FileId);
+                    _fileMetadata.Id = fileBlockInfo.FileId;
+                    _fileMetadata.FileName = fileBlockInfo.FileName;
+                    _fileMetadata.FileSize = fileBlockInfo.FileSize;
+                    _fileMetadata.Location = Path.Combine(_storageDirectory, fileBlockInfo.FileId);
+                    //_fileMetadata.ContentType = fileBlockInfo
 
-                    if (!Directory.Exists(_directory))
+
+                    if (!Directory.Exists(_fileMetadata.Location))
                     {
-                        Directory.CreateDirectory(_directory);
+                        Directory.CreateDirectory(_fileMetadata.Location);
                     }
                 }
                 finally
