@@ -4,7 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace FileUploadDemo.FileUpload
@@ -13,44 +13,43 @@ namespace FileUploadDemo.FileUpload
     {
         private const string StoreFileName = "files_metadata.json";
         private readonly string StoreFilePath;
-        private readonly ConcurrentDictionary<string, FileMetadata> FileMetadataStore;
+        private readonly ConcurrentDictionary<Guid, FileMetadata> FileMetadataStore;
 
         private readonly System.Timers.Timer _timer;
         private const int _timerInterval = 1000; // milliseconds
 
-        private int _hasChanges = 0;
+        private static int _syncing = 0;
+        private static int _storeInitialized = 0;
 
         public FileMetadataRepository(IConfiguration configuration)
         {
             StoreFilePath = Path.Combine(configuration.GetValue<string>("FileStoreDirectory"), StoreFileName);
 
-            var storeContent = LoadStoreContent();
-
-            FileMetadataStore = new ConcurrentDictionary<string, FileMetadata>(storeContent);
+            FileMetadataStore = new ConcurrentDictionary<Guid, FileMetadata>();
 
             _timer = new System.Timers.Timer(_timerInterval);
             _timer.Elapsed += SyncFileStore;
         }
 
-        public FileMetadata Get(string fileId)
+        public FileMetadata Get(Guid fileId)
         {
+            EnsureStoreIsInitialized();
             FileMetadataStore.TryGetValue(fileId, out var fileInfo);
 
             return fileInfo;
         }
 
-        public void Save(FileMetadata fileInfo)
+        public void Save(FileMetadata fileMetadata)
         {
-            FileMetadataStore.AddOrUpdate(fileInfo.Id, fileInfo, (key, value) => value);
-
-            Interlocked.Exchange(ref _hasChanges, 1);
+            //EnsureStoreIsInitialized();
+            FileMetadataStore.AddOrUpdate(fileMetadata.Id, fileMetadata, (key, value) => value);
+            SyncFileStore(null, null);
         }
 
-        public void Delete(string fileId)
+        public void Delete(Guid fileId)
         {
+            
             FileMetadataStore.TryRemove(fileId, out var fileInfo);
-
-            Interlocked.Exchange(ref _hasChanges, 1);
         }
 
         public void Dispose()
@@ -61,23 +60,61 @@ namespace FileUploadDemo.FileUpload
 
         private void SyncFileStore(object sender, System.Timers.ElapsedEventArgs e)
         {
-            var contentJson = JsonConvert.SerializeObject(FileMetadataStore.Values, Formatting.Indented);
+            if (0 == Interlocked.Exchange(ref _syncing, 1))
+            {
+                EnsureStoreIsInitialized();
+                var contentJson = JsonConvert.SerializeObject(FileMetadataStore.Values, Formatting.Indented);
 
-            File.WriteAllText(StoreFilePath, contentJson);
+                File.WriteAllText(StoreFilePath, contentJson);
+
+                Interlocked.Exchange(ref _syncing, 0);
+            }
         }
 
-        private IDictionary<string, FileMetadata> LoadStoreContent()
+        private void EnsureStoreIsInitialized()
         {
-            var storeContent = File.ReadAllText(StoreFilePath);
-
-            if (!string.IsNullOrWhiteSpace(storeContent))
+            if (0 == Interlocked.Exchange(ref _storeInitialized, 1))
             {
-                var content = JsonConvert.DeserializeObject<List<FileMetadata>>(storeContent);
+                EnsureStoreFileExists();
 
-                return content.ToDictionary(x => x.Id);
+                var storeContent = File.ReadAllText(StoreFilePath);
+
+                if (!string.IsNullOrWhiteSpace(storeContent))
+                {
+                    var existingFileMetadatas = JsonConvert.DeserializeObject<List<FileMetadata>>(storeContent);
+
+                    foreach (var fileMetadata in existingFileMetadatas)
+                    {
+                        FileMetadataStore.TryAdd(fileMetadata.Id, fileMetadata);
+                    }
+                }
+
+                // start timer
+                _timer.Enabled = true;
+            }
+        }
+
+        private void EnsureStoreFileExists()
+        {
+            if (File.Exists(StoreFilePath))
+            {
+                return;
             }
 
-            return new Dictionary<string, FileMetadata>();
+            var directory = Path.GetDirectoryName(StoreFilePath);
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using (var fileStream = File.Create(StoreFilePath))
+            {
+                var content = Encoding.UTF8.GetBytes("[]");
+
+                fileStream.Write(content, 0, content.Length);
+                fileStream.Flush();
+            }
         }
     }
 }

@@ -24,7 +24,7 @@ namespace FileUploadDemo
         {
             services.AddMvc();
 
-            services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
+            services.AddSingleton<IFileMetadataRepository, FileMetadataRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

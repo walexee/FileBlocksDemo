@@ -23,7 +23,7 @@ namespace FileUploadDemo.Controllers
         [HttpPost("upload")]
         public async Task<IActionResult> UploadFile(IList<IFormFile> files)
         {
-            foreach (var file in files)
+            foreach (var file in Request.Form.Files)
             {
                 if (file.Length == 0)
                 {
@@ -43,17 +43,17 @@ namespace FileUploadDemo.Controllers
                         TotalBlocksCount = int.Parse(Request.Form["flowTotalChunks"])
                     };
 
-                    await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream);
+                    await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream, false);
                 }
             }
 
             return Ok();
         }
 
-        [HttpPost("aggregate")]
-        public Task AggregateBlocks([FromBody]string fileId)
+        [HttpPost("aggregate/{fileId}")]
+        public Task AggregateBlocks(string fileId)
         {
-            return FileUploadManager.CompleteUploadAsync(fileId);
+            return FileUploadManager.CompleteUploadAsync(fileId, _fileMetadataRepository);
         }
     }
 }

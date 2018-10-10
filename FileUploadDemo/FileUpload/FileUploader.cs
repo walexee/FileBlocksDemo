@@ -35,7 +35,7 @@ namespace FileUploadDemo.FileUpload
             await DoUploadFileBlock(fileBlockInfo, fileContent);
         }
 
-        public async Task AggregateBlocksAsync()
+        public async Task<FileMetadata> AggregateBlocksAsync()
         {
             var allBlocks = Directory.EnumerateFiles(_fileMetadata.Location, $"*{FileBlockExtension}")?.OrderBy(b => b);
 
@@ -54,10 +54,14 @@ namespace FileUploadDemo.FileUpload
                     {
                         await blockStream.CopyToAsync(fileStream);
                     }
+
+                    File.Delete(block);
                 }
 
                 await fileStream.FlushAsync();
             }
+
+            return _fileMetadata;
         }
 
         private async Task DoUploadFileBlock(FileBlockInfo fileBlockInfo, Stream fileContent)
@@ -83,13 +87,11 @@ namespace FileUploadDemo.FileUpload
             {
                 try
                 {
-                    //_directory = Path.Combine(_storageDirectory, fileBlockInfo.FileId);
-                    _fileMetadata.Id = fileBlockInfo.FileId;
+                    _fileMetadata.Id = Guid.NewGuid();
                     _fileMetadata.FileName = fileBlockInfo.FileName;
                     _fileMetadata.FileSize = fileBlockInfo.FileSize;
-                    _fileMetadata.Location = Path.Combine(_storageDirectory, fileBlockInfo.FileId);
-                    //_fileMetadata.ContentType = fileBlockInfo
-
+                    _fileMetadata.Location = Path.Combine(_storageDirectory, _fileMetadata.Id.ToString());
+                    _fileMetadata.CreateDateUtc = DateTime.UtcNow;
 
                     if (!Directory.Exists(_fileMetadata.Location))
                     {

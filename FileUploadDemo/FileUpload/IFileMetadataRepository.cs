@@ -1,11 +1,13 @@
-﻿namespace FileUploadDemo.FileUpload
+﻿using System;
+
+namespace FileUploadDemo.FileUpload
 {
     public interface IFileMetadataRepository
     {
-        FileMetadata Get(string fileId);
+        FileMetadata Get(Guid fileId);
 
-        void Save(FileMetadata fileInfo);
+        void Save(FileMetadata fileMetadata);
 
-        void Delete(string fileId);
+        void Delete(Guid fileId);
     }
 }
