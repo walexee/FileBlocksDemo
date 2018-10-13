@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -55,6 +56,21 @@ namespace FileUploadDemo.FileUpload
             finally
             {
                 _uploaders.TryRemove(fileId, out uploader);
+            }
+        }
+
+        // TODO: refactor
+        public static void DeleteFiles(IConfiguration configuration, IFileMetadataRepository repository, IEnumerable<Guid> fileIds)
+        {
+            var storageDirectory = configuration.GetValue<string>("FileStoreDirectory");
+
+            foreach (var fileId in fileIds)
+            {
+                var fileDirectory = Path.Combine(storageDirectory, fileId.ToString());
+
+                repository.Delete(fileId);
+
+                Directory.Delete(fileDirectory, true);
             }
         }
     }

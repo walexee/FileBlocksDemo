@@ -55,8 +55,8 @@ namespace FileUploadDemo.FileUpload
 
         public void Delete(Guid fileId)
         {
-            
             FileMetadataStore.TryRemove(fileId, out var fileInfo);
+            SyncFileStore(null, null);
         }
 
         public void Dispose()

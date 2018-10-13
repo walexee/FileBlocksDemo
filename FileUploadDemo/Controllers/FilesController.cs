@@ -3,6 +3,7 @@ using FileUploadDemo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -66,6 +67,12 @@ namespace FileUploadDemo.Controllers
             var fileMetadata = await FileUploadManager.CompleteUploadAsync(fileId, _fileMetadataRepository);
 
             return ToFileViewModel(fileMetadata);
+        }
+
+        [HttpDelete]
+        public void DeleteFiles(FileIdsModel model)
+        {
+            FileUploadManager.DeleteFiles(_configuration, _fileMetadataRepository, model.FileIds);
         }
 
         private FileViewModel ToFileViewModel(FileMetadata fileMetadata)

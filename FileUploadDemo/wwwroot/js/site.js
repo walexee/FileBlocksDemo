@@ -8,6 +8,8 @@
     };
 
     function init() {
+        initRivet();
+
         var flow = new Flow({
             target: '/api/Files/upload',
             chunkSize: 1024 * 1024 * 20, // 20MB
@@ -28,13 +30,20 @@
         initBrowseButtons(flow);
         initDragDrop(flow);
         initFlowEvents(flow);
-        initRivet();
+        initControlButtons();
     }
 
     function initBrowseButtons(flow) {
         flow.assignBrowse($('#btn-browse-files')[0]);
         flow.assignBrowse($('#btn-browse-folders')[0], true);
         flow.assignBrowse($('#btn-browse-images')[0], false, false, { accept: 'image/*' });
+    }
+
+    function initControlButtons() {
+        $('#btn-delete-files').click(deleteFiles);
+        $('#btn-clear').click(function () {
+            viewModel.files = [];
+        });
     }
 
     function initDragDrop(flow) {
@@ -112,6 +121,37 @@
                 viewModel.uploadedFiles.push(file);
             }
         });
+    }
+
+    function deleteFiles() {
+        var selectedFileIds = [];
+        var selectedFiles = [];
+
+        for (var i = 0; i < viewModel.uploadedFiles.length; i++) {
+            var file = viewModel.uploadedFiles[i];
+            if (file.selected) {
+                selectedFileIds.push(file.id);
+            }
+        }
+
+        if (selectedFileIds.length == 0) {
+            return;
+        }
+
+        $.ajax({
+                url: '/api/files',
+                method: 'DELETE',
+                data: { fileIds: selectedFileIds }
+            })
+            .done(function () {
+                for (var i = viewModel.uploadedFiles.length - 1; i >= 0; i--) {
+                    if (viewModel.uploadedFiles[i].selected) {
+                        viewModel.uploadedFiles.splice(i, 1);
+                    }
+                }
+
+                console.log(viewModel.uploadedFiles);
+            });
     }
 
     function initRivet() {
