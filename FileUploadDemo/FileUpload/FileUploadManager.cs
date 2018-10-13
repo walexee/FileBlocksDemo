@@ -35,7 +35,7 @@ namespace FileUploadDemo.FileUpload
             await uploader.UploadFileBlockAsync(fileBlockInfo, stream);
         }
 
-        public static async Task CompleteUploadAsync(string fileId, IFileMetadataRepository fileMetadataRepository)
+        public static async Task<FileMetadata> CompleteUploadAsync(string fileId, IFileMetadataRepository fileMetadataRepository)
         {
             _uploaders.TryGetValue(fileId, out var uploader);
 
@@ -50,6 +50,7 @@ namespace FileUploadDemo.FileUpload
 
                 fileMetadataRepository.Save(fileMetadata);
 
+                return fileMetadata;
             }
             finally
             {

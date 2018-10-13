@@ -33,3 +33,15 @@
         display: none;
     }
 }
+
+.panel-content {
+    height: 200px;
+    overflow-y: scroll;
+}
+
+.file-dragover {
+    padding: 30px;
+    color: #555;
+    background-color: #ddd;
+    border: 1px solid #999;
+}

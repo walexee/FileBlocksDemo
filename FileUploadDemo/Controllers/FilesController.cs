@@ -1,14 +1,16 @@
 ﻿using FileUploadDemo.FileUpload;
+using FileUploadDemo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileUploadDemo.Controllers
 {
     [Produces("application/json")]
-    [Route("api/Files")]
+    [Route("api/files")]
     public class FilesController : Controller
     {
         private readonly IConfiguration _configuration;
@@ -18,6 +20,14 @@ namespace FileUploadDemo.Controllers
         {
             _configuration = configuration;
             _fileMetadataRepository = fileMetadataRepository;
+        }
+
+        [HttpGet]
+        public IList<FileViewModel> GetAll()
+        {
+            return _fileMetadataRepository
+                .GetAll()
+                .Select(f =>ToFileViewModel(f)).ToList();
         }
 
         [HttpPost("upload")]
@@ -51,9 +61,22 @@ namespace FileUploadDemo.Controllers
         }
 
         [HttpPost("aggregate/{fileId}")]
-        public Task AggregateBlocks(string fileId)
+        public async Task<FileViewModel> AggregateBlocks(string fileId)
         {
-            return FileUploadManager.CompleteUploadAsync(fileId, _fileMetadataRepository);
+            var fileMetadata = await FileUploadManager.CompleteUploadAsync(fileId, _fileMetadataRepository);
+
+            return ToFileViewModel(fileMetadata);
+        }
+
+        private FileViewModel ToFileViewModel(FileMetadata fileMetadata)
+        {
+            return new FileViewModel
+            {
+                Id = fileMetadata.Id,
+                Name = fileMetadata.FileName,
+                size = fileMetadata.FileSize,
+                CreatedDateUtc = fileMetadata.CreateDateUtc
+            };
         }
     }
 }

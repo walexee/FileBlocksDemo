@@ -39,6 +39,13 @@ namespace FileUploadDemo.FileUpload
             return fileInfo;
         }
 
+        public ICollection<FileMetadata> GetAll()
+        {
+            EnsureStoreIsInitialized();
+
+            return FileMetadataStore.Values;
+        }
+
         public void Save(FileMetadata fileMetadata)
         {
             //EnsureStoreIsInitialized();

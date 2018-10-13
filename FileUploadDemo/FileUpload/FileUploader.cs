@@ -69,10 +69,24 @@ namespace FileUploadDemo.FileUpload
             var filename = GetFileBlockName(fileBlockInfo);
             var filepath = Path.Combine(_fileMetadata.Location, filename);
 
-            using (var fileStream = File.Create(filepath))
+            try
             {
-                await fileContent.CopyToAsync(fileStream);
-                await fileStream.FlushAsync();
+                using (var fileStream = File.Create(filepath))
+                {
+                    await fileContent.CopyToAsync(fileStream);
+                    await fileStream.FlushAsync();
+                }
+            }
+            catch(DirectoryNotFoundException)
+            {
+                // retry by first attempting to create the directory
+                Directory.CreateDirectory(_fileMetadata.Location);
+
+                using (var fileStream = File.Create(filepath))
+                {
+                    await fileContent.CopyToAsync(fileStream);
+                    await fileStream.FlushAsync();
+                }
             }
         }
 
