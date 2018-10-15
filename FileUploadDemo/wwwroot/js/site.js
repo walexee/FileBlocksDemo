@@ -171,37 +171,14 @@
             return moment(value).fromNow();
         };
 
-        rivets.bind($('#page-container'), viewModel);
+        rivets.bind($('#upload-container'), viewModel);
     }
 
     function readablizeBytes(bytes) {
         var s = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'];
         var e = Math.floor(Math.log(bytes) / Math.log(1024));
-        return (bytes / Math.pow(1024, e)).toFixed(2) + " " + s[e];
-    }
 
-    function secondsToStr(temp) {
-        function numberEnding(number) {
-            return (number > 1) ? 's' : '';
-        }
-        var years = Math.floor(temp / 31536000);
-        if (years) {
-            return years + ' year' + numberEnding(years);
-        }
-        var days = Math.floor((temp %= 31536000) / 86400);
-        if (days) {
-            return days + ' day' + numberEnding(days);
-        }
-        var hours = Math.floor((temp %= 86400) / 3600);
-        if (hours) {
-            return hours + ' hour' + numberEnding(hours);
-        }
-        var minutes = Math.floor((temp %= 3600) / 60);
-        if (minutes) {
-            return minutes + ' minute' + numberEnding(minutes);
-        }
-        var seconds = temp % 60;
-        return seconds + ' second' + numberEnding(seconds);
+        return (bytes / Math.pow(1024, e)).toFixed(2) + " " + s[e];
     }
 
     init();
