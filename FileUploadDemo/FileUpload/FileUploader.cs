@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -8,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FileUploadDemo.FileUpload
 {
-    public class FileUploader
+    public class FileUploader : IFileUploader
     {
         private const string FileBlockExtension = ".block";
         private readonly string _storageDirectory;
@@ -24,7 +23,7 @@ namespace FileUploadDemo.FileUpload
             _fileMetadata = new FileMetadata();
         }
 
-        public async Task UploadFileBlockAsync(FileBlockInfo fileBlockInfo, Stream fileContent)
+        public virtual async Task UploadFileBlockAsync(FileBlockInfo fileBlockInfo, Stream fileContent)
         {
             Initialize(fileBlockInfo);
 
@@ -36,7 +35,7 @@ namespace FileUploadDemo.FileUpload
             await DoUploadFileBlock(fileBlockInfo, fileContent);
         }
 
-        public async Task<FileMetadata> AggregateBlocksAsync()
+        public virtual async Task<FileMetadata> CompleteUploadAsync()
         {
             var allBlocks = Directory.EnumerateFiles(_fileMetadata.Location, $"*{FileBlockExtension}")?.OrderBy(b => b);
 

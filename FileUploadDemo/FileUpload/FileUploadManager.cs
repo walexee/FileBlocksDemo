@@ -47,7 +47,7 @@ namespace FileUploadDemo.FileUpload
 
             try
             {
-                var fileMetadata = await uploader.AggregateBlocksAsync();
+                var fileMetadata = await uploader.CompleteUploadAsync();
 
                 fileMetadataRepository.Save(fileMetadata);
 
