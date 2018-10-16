@@ -7,44 +7,53 @@ using System.Threading.Tasks;
 
 namespace FileUploadDemo.FileUpload
 {
-    public static class FileUploadManager
+    public class FileUploadManager : IFileUploadManager
     {
-        private static ConcurrentDictionary<string, IFileUploader> _uploaders = new ConcurrentDictionary<string, IFileUploader>();
+        private ConcurrentDictionary<string, IFileUploader> _uploaders = new ConcurrentDictionary<string, IFileUploader>();
 
-        public static async Task AddFileBlockAsync(IConfiguration configuration, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure)
+        private readonly IFileMetadataRepository _fileMetadataRepository;
+        private readonly IAzureAccountManager _azureAccountManager;
+        private readonly IConfiguration _configuration;
+
+        public FileUploadManager(
+            IFileMetadataRepository fileMetadataRepository, 
+            IAzureAccountManager azureAccountManager,
+            IConfiguration configuration)
+        {
+            _fileMetadataRepository = fileMetadataRepository;
+            _azureAccountManager = azureAccountManager;
+            _configuration = configuration;
+        }
+
+        public async Task AddFileBlockAsync(IServiceProvider serviceProvider, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure)
         {
             _uploaders.TryGetValue(fileBlockInfo.FileId, out var uploader);
 
             if (uploader == null)
             {
-                //if (throwIfUploadNotFound)
-                //{
-                //    throw new KeyNotFoundException($"No file block uploader found for file Id {fileBlockInfo.FileId}");
-                //}
-
-                await AddOrInitializeUploadAsync(configuration, fileBlockInfo, stream, sendToAzure);
+                await AddOrInitializeUploadAsync(serviceProvider, fileBlockInfo, stream, sendToAzure);
                 return;
             }
 
             await uploader.UploadFileBlockAsync(fileBlockInfo, stream);
         }
 
-        public static async Task AddOrInitializeUploadAsync(IConfiguration configuration, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure)
+        public async Task AddOrInitializeUploadAsync(IServiceProvider serviceProvider, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure)
         {
             var uploader = _uploaders.GetOrAdd(fileBlockInfo.FileId, key =>
             {
                 if (sendToAzure)
                 {
-                    return new AzureFileUploader(configuration);
+                    return new AzureFileUploader(_configuration, _azureAccountManager);
                 }
 
-                return new FileUploader(configuration);
+                return new FileUploader(_configuration);
             });
 
             await uploader.UploadFileBlockAsync(fileBlockInfo, stream);
         }
 
-        public static async Task<FileMetadata> CompleteUploadAsync(string fileId, IFileMetadataRepository fileMetadataRepository)
+        public async Task<FileMetadata> CompleteUploadAsync(string fileId)
         {
             _uploaders.TryGetValue(fileId, out var uploader);
 
@@ -57,7 +66,7 @@ namespace FileUploadDemo.FileUpload
             {
                 var fileMetadata = await uploader.CompleteUploadAsync();
 
-                fileMetadataRepository.Save(fileMetadata);
+                _fileMetadataRepository.Save(fileMetadata);
 
                 return fileMetadata;
             }
@@ -67,19 +76,45 @@ namespace FileUploadDemo.FileUpload
             }
         }
 
-        // TODO: refactor
-        public static void DeleteFiles(IConfiguration configuration, IFileMetadataRepository repository, IEnumerable<Guid> fileIds)
+        public void DeleteFiles(IEnumerable<Guid> fileIds)
         {
-            var storageDirectory = configuration.GetValue<string>("FileStoreDirectory");
+            var storageDirectory = _configuration.GetValue<string>("FileStoreDirectory");
 
             foreach (var fileId in fileIds)
             {
                 var fileDirectory = Path.Combine(storageDirectory, fileId.ToString());
 
-                repository.Delete(fileId);
+                _fileMetadataRepository.Delete(fileId);
 
                 Directory.Delete(fileDirectory, true);
             }
         }
+
+        public Stream GetFileContent(FileMetadata fileMetadata)
+        {
+            var filePath = Path.Combine(fileMetadata.Location, fileMetadata.FileName);
+
+            return File.OpenRead(filePath);
+        }
+
+        public Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata)
+        {
+            return _azureAccountManager.GetFileDownloadUrlAsync(fileMetadata);
+        }
+    }
+
+    public interface IFileUploadManager
+    {
+        Task AddFileBlockAsync(IServiceProvider serviceProvider, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure);
+
+        Task AddOrInitializeUploadAsync(IServiceProvider serviceProvider, FileBlockInfo fileBlockInfo, Stream stream, bool sendToAzure);
+
+        Task<FileMetadata> CompleteUploadAsync(string fileId);
+
+        void DeleteFiles(IEnumerable<Guid> fileIds);
+
+        Stream GetFileContent(FileMetadata fileMetadata);
+
+        Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata);
     }
 }

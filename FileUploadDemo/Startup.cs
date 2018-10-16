@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using FileUploadDemo.FileUpload;
+﻿using FileUploadDemo.FileUpload;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +21,8 @@ namespace FileUploadDemo
             services.AddMvc();
 
             services.AddSingleton<IFileMetadataRepository, FileMetadataRepository>();
+            services.AddSingleton<IAzureAccountManager, AzureAccountManager>();
+            services.AddSingleton<IFileUploadManager, FileUploadManager>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

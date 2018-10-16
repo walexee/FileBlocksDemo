@@ -1,12 +1,11 @@
 ﻿using FileUploadDemo.FileUpload;
 using FileUploadDemo.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MimeMapping;
 
 namespace FileUploadDemo.Controllers
 {
@@ -14,13 +13,18 @@ namespace FileUploadDemo.Controllers
     [Route("api/files")]
     public class FilesController : Controller
     {
-        private readonly IConfiguration _configuration;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IFileMetadataRepository _fileMetadataRepository;
+        private readonly IFileUploadManager _fileUploadManager;
 
-        public FilesController(IConfiguration configuration, IFileMetadataRepository fileMetadataRepository)
+        public FilesController(
+            IServiceProvider serviceProvider, 
+            IFileMetadataRepository fileMetadataRepository,
+            IFileUploadManager fileUploadManager)
         {
-            _configuration = configuration;
+            _serviceProvider = serviceProvider;
             _fileMetadataRepository = fileMetadataRepository;
+            _fileUploadManager = fileUploadManager;
         }
 
         [HttpGet]
@@ -56,7 +60,7 @@ namespace FileUploadDemo.Controllers
 
                     var uploadToAzure = Convert.ToBoolean(Request.Form["toAzure"]);
 
-                    await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream, uploadToAzure);
+                    await _fileUploadManager.AddFileBlockAsync(_serviceProvider, fileBlockInfo, contentStream, uploadToAzure);
                 }
             }
 
@@ -66,15 +70,33 @@ namespace FileUploadDemo.Controllers
         [HttpPost("aggregate/{fileId}")]
         public async Task<FileViewModel> AggregateBlocks(string fileId)
         {
-            var fileMetadata = await FileUploadManager.CompleteUploadAsync(fileId, _fileMetadataRepository);
+            var fileMetadata = await _fileUploadManager.CompleteUploadAsync(fileId);
 
             return ToFileViewModel(fileMetadata);
+        }
+
+        [HttpGet("download/{fileId}")]
+        public async Task<IActionResult> DownloadSingle(Guid fileId)
+        {
+            var fileMetadata = _fileMetadataRepository.Get(fileId);
+
+            if (fileMetadata.Store == FileStore.Azure)
+            {
+                var downloadUrl = await _fileUploadManager.GetAzureFileDownloadLinkAsync(fileMetadata);
+
+                return Redirect(downloadUrl);
+            }
+
+            var fileStream = _fileUploadManager.GetFileContent(fileMetadata);
+            var contentType = MimeUtility.GetMimeMapping(fileMetadata.FileName);
+
+            return File(fileStream, contentType);
         }
 
         [HttpDelete]
         public void DeleteFiles(FileIdsModel model)
         {
-            FileUploadManager.DeleteFiles(_configuration, _fileMetadataRepository, model.FileIds);
+            _fileUploadManager.DeleteFiles(model.FileIds);
         }
 
         private FileViewModel ToFileViewModel(FileMetadata fileMetadata)
@@ -84,6 +106,7 @@ namespace FileUploadDemo.Controllers
                 Id = fileMetadata.Id,
                 Name = fileMetadata.FileName,
                 size = fileMetadata.FileSize,
+                Store = fileMetadata.Store,
                 CreatedDateUtc = fileMetadata.CreateDateUtc
             };
         }

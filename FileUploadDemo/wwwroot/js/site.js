@@ -62,7 +62,7 @@
 
         stage.ondragend = function () {
             $stage.removeClass('file-dragover');
-        }
+        };
 
         stage.ondrop = function () {
             $stage.removeClass('file-dragover');
@@ -92,8 +92,14 @@
     function onFileUploadSuccess(flowFile, message) {
         $.post('/api/files/aggregate/' + flowFile.uniqueIdentifier, {})
             .done(function (file) {
-                file.displaySize = readablizeBytes(file.size);
-                viewModel.uploadedFiles.push(file);
+                // remove from the progress list
+                for (var i = 0; i < viewModel.files.length; i++) {
+                    if (viewModel.files[i].uid === flowFile.uniqueIdentifier) {
+                        viewModel.files.splice(i, 1);
+                    }
+                }
+
+                addToFileList(file);
             });
     }
 
@@ -101,7 +107,7 @@
         var targetFile;
 
         for (var i = 0; i < viewModel.files.length; i++) {
-            if (viewModel.files[i].uid == flowFile.uniqueIdentifier) {
+            if (viewModel.files[i].uid === flowFile.uniqueIdentifier) {
                 targetFile = viewModel.files[i];
                 break;
             }
@@ -119,10 +125,7 @@
             viewModel.uploadedFiles = [];
 
             for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-
-                file.displaySize = readablizeBytes(file.size);
-                viewModel.uploadedFiles.push(file);
+                addToFileList(files[i]);
             }
         });
     }
@@ -138,7 +141,7 @@
             }
         }
 
-        if (selectedFileIds.length == 0) {
+        if (selectedFileIds.length === 0) {
             return;
         }
 
@@ -153,9 +156,13 @@
                         viewModel.uploadedFiles.splice(i, 1);
                     }
                 }
-
-                console.log(viewModel.uploadedFiles);
             });
+    }
+
+    function addToFileList(file) {
+        file.displaySize = readablizeBytes(file.size);
+        file.fileImageClass = file.store === 2 ? 'glyphicon glyphicon-cloud' : '';
+        viewModel.uploadedFiles.push(file);
     }
 
     function initRivet() {

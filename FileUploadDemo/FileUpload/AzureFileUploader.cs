@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.IO;
@@ -13,6 +12,7 @@ namespace FileUploadDemo.FileUpload
     public class AzureFileUploader : IFileUploader
     {
         private readonly IConfiguration _configuration;
+        private readonly IAzureAccountManager _azureAccountManager;
         private readonly FileMetadata _fileMetadata;
         
 
@@ -22,9 +22,10 @@ namespace FileUploadDemo.FileUpload
         private CloudBlockBlob _blockBlobReference;
         private int _blocksCount;
 
-        public AzureFileUploader(IConfiguration configuration)
+        public AzureFileUploader(IConfiguration configuration, IAzureAccountManager azureAccountManager)
         {
             _configuration = configuration;
+            _azureAccountManager = azureAccountManager;
             _fileMetadata = new FileMetadata();
         }
 
@@ -82,68 +83,13 @@ namespace FileUploadDemo.FileUpload
 
                     _blocksCount = fileBlockInfo.TotalBlocksCount;
 
-                    _blockBlobReference = await GetBlobReferenceAsync();
+                    _blockBlobReference = await _azureAccountManager.GetBlobReferenceAsync(_fileMetadata);
                 }
                 finally
                 {
                     Interlocked.Exchange(ref _initialized, 1);
                 }
             }
-        }
-
-        private async Task<CloudBlockBlob> GetBlobReferenceAsync()
-        {
-            var container = await GetContainerAsync();
-            var filePath = Path.Combine(_fileMetadata.Id.ToString(), _fileMetadata.FileName);
-
-            return container.GetBlockBlobReference(filePath);
-        }
-
-        private async Task<CloudBlobContainer> GetContainerAsync()
-        {
-            var connectionString = _configuration.GetValue<string>("AzureBlobConnectionString");
-            var containerName = _configuration.GetValue<string>("AzureBlobContainerName");
-            var storageAccount = GetStorageAccount(connectionString);
-            var blobClient = storageAccount.CreateCloudBlobClient();
-
-            var requestOptions = new BlobRequestOptions
-            {
-                //UseTransactionalMD5 = true,
-                //StoreBlobContentMD5 = true,
-                MaximumExecutionTime = TimeSpan.FromMinutes(5),
-                //DisableContentMD5Validation = false,
-                ParallelOperationThreadCount = 5,
-                SingleBlobUploadThresholdInBytes = 1024 * 1024 * 100,
-                ServerTimeout = TimeSpan.FromMinutes(5)
-            };
-
-            var operationContext = new OperationContext
-            {
-                LogLevel = LogLevel.Verbose,
-            };
-
-            var blobContainer = blobClient.GetContainerReference(containerName);
-
-            await blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Blob, requestOptions, operationContext);
-
-            var permissions = new BlobContainerPermissions
-            {
-                PublicAccess = BlobContainerPublicAccessType.Blob
-            };
-
-            await blobContainer.SetPermissionsAsync(permissions);
-
-            return blobContainer;
-        }
-
-        private CloudStorageAccount GetStorageAccount(string connectionString)
-        {
-            if (!CloudStorageAccount.TryParse(connectionString, out var cloudStorageAccount))
-            {
-                throw new InvalidCastException("The given string cannot be cast into a valid cloud storage account.");
-            }
-
-            return cloudStorageAccount;
         }
 
         private string ToBase64(int value)

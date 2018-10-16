@@ -18,10 +18,10 @@
         <table class="table table-striped table-condensed">
             <tbody>
                 <tr rv-each-file="files">
-                    <td colspan="4">
+                    <td colspan="5">
                         <div class="progress">
                             <div class="progress-bar progress-bar progress-bar-striped" role="progressbar" rv-aria-valuenow="file.percentUploaded" aria-valuemin="0" aria-valuemax="100" rv-style="file.percentUploaded | width">
-                                <span class="pull-left">{file.name}</span>
+                                <span class="pull-left" style="padding-left: 10px;">{file.name}</span>
                             </div>
                         </div>
                     </td>
@@ -29,6 +29,7 @@
 
                 <tr rv-each-file="uploadedFiles" rv-class="file.selected | bootstrapSuccess">
                     <td><input type="checkbox" rv-checked="file.selected" /></td>
+                    <td><span rv-class="file.fileImageClass"></span></td>
                     <td>{file.name}</td>
                     <td>{file.displaySize}</td>
                     <td>{file.createdDateUtc | timeAgo}</td>

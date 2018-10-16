@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FileUploadDemo.FileUpload;
+using System;
 
 namespace FileUploadDemo.Models
 {
@@ -9,6 +10,8 @@ namespace FileUploadDemo.Models
         public string Name { get; set; }
 
         public long size { get; set; }
+
+        public FileStore Store { get; set; }
 
         public DateTime CreatedDateUtc { get; set; }
     }
