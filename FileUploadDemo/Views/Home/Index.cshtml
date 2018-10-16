@@ -20,7 +20,7 @@
                 <tr rv-each-file="files">
                     <td colspan="4">
                         <div class="progress">
-                            <div class="progress-bar" role="progressbar" rv-aria-valuenow="file.percentUploaded" aria-valuemin="0" aria-valuemax="100" rv-style="file.percentUploaded | width">
+                            <div class="progress-bar progress-bar progress-bar-striped" role="progressbar" rv-aria-valuenow="file.percentUploaded" aria-valuemin="0" aria-valuemax="100" rv-style="file.percentUploaded | width">
                                 <span class="pull-left">{file.name}</span>
                             </div>
                         </div>
@@ -37,12 +37,19 @@
         </table>
     </div>
     <div class="panel-footer">
+        <div class="pull-left">
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" rv-checked="toAzure"> Upload to Azure
+                </label>
+            </div>
+        </div>
         <div class="pull-right">
             <button class="btn btn-default"><span class="glyphicon glyphicon-pause"></span></button>
-            <button class="btn btn-default"><span class="glyphicon glyphicon-remove-sign"></span></button>
+            <button class="btn btn-default"><span class="glyphicon glyphicon-stop"></span></button>
             <button class="btn btn-default" id="btn-clear">Clear</button>
             <button class="btn btn-danger" id="btn-delete-files"><span class="glyphicon glyphicon-trash"></span></button>
-            <button class="btn btn-default" id="btn-download-files"><span class="glyphicon glyphicon-save-file"></span></button>
+            <button class="btn btn-default" id="btn-download-files"><span class="glyphicon glyphicon-download-alt"></span></button>
         </div>
         <div class="clearfix"></div>
     </div>

@@ -4,7 +4,8 @@
     var viewModel = {
         files: [],
         uploadedFiles: [],
-        notSupported: false
+        notSupported: false,
+        toAzure: true
     };
 
     function init() {
@@ -16,7 +17,10 @@
             testChunks: false,
             // simultaneousUploads: 5,
             maxChunkRetries: 5,
-            chunkRetryInterval: 200
+            chunkRetryInterval: 200,
+            query: function () {
+                return { toAzure: viewModel.toAzure };
+            }
         });
 
         // Flow.js is not support

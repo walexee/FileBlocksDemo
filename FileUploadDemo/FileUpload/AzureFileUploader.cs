@@ -42,6 +42,11 @@ namespace FileUploadDemo.FileUpload
 
         public async Task<FileMetadata> CompleteUploadAsync()
         {
+            if (_blocksCount == 1)
+            {
+                return _fileMetadata;
+            }
+
             var blockIds = Enumerable.Range(1, _blocksCount).Select(b => ToBase64(b)).ToList();
 
             await _blockBlobReference.PutBlockListAsync(blockIds);
@@ -51,6 +56,12 @@ namespace FileUploadDemo.FileUpload
 
         private async Task DoUploadFileBlockAsync(FileBlockInfo fileBlockInfo, Stream fileContent)
         {
+            if (_blocksCount == 1)
+            {
+                await _blockBlobReference.UploadFromStreamAsync(fileContent);
+                return;
+            }
+
             var blockId = ToBase64(fileBlockInfo.SequenceNum);
 
             await _blockBlobReference.PutBlockAsync(blockId, fileContent, null);
@@ -67,6 +78,7 @@ namespace FileUploadDemo.FileUpload
                     _fileMetadata.FileSize = fileBlockInfo.FileSize;
                     _fileMetadata.Location = _fileMetadata.Id.ToString();
                     _fileMetadata.CreateDateUtc = DateTime.UtcNow;
+                    _fileMetadata.Store = FileStore.Azure;
 
                     _blocksCount = fileBlockInfo.TotalBlocksCount;
 

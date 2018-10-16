@@ -106,6 +106,7 @@ namespace FileUploadDemo.FileUpload
                     _fileMetadata.FileSize = fileBlockInfo.FileSize;
                     _fileMetadata.Location = Path.Combine(_storageDirectory, _fileMetadata.Id.ToString());
                     _fileMetadata.CreateDateUtc = DateTime.UtcNow;
+                    _fileMetadata.Store = FileStore.FileSystem;
 
                     if (!Directory.Exists(_fileMetadata.Location))
                     {

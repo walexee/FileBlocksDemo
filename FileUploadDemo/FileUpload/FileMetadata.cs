@@ -13,5 +13,7 @@ namespace FileUploadDemo.FileUpload
         public long FileSize { get; set; }
 
         public DateTime CreateDateUtc { get; set; }
+
+        public FileStore Store { get; set; }
     }
 }

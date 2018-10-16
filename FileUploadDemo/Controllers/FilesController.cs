@@ -32,7 +32,7 @@ namespace FileUploadDemo.Controllers
         }
 
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadFile(IList<IFormFile> files)
+        public async Task<IActionResult> UploadFile()
         {
             foreach (var file in Request.Form.Files)
             {
@@ -54,7 +54,9 @@ namespace FileUploadDemo.Controllers
                         TotalBlocksCount = int.Parse(Request.Form["flowTotalChunks"])
                     };
 
-                    await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream, false);
+                    var uploadToAzure = Convert.ToBoolean(Request.Form["toAzure"]);
+
+                    await FileUploadManager.AddFileBlockAsync(_configuration, fileBlockInfo, contentStream, uploadToAzure);
                 }
             }
 
