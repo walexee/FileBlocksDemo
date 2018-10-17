@@ -45,6 +45,7 @@
 
     function initControlButtons() {
         $('#btn-delete-files').click(deleteFiles);
+        $('#btn-download-files').click(downloadFiles);
         $('#btn-clear').click(function () {
             viewModel.files = [];
         });
@@ -131,38 +132,49 @@
     }
 
     function deleteFiles() {
-        var selectedFileIds = [];
-        var selectedFiles = [];
-
-        for (var i = 0; i < viewModel.uploadedFiles.length; i++) {
-            var file = viewModel.uploadedFiles[i];
-            if (file.selected) {
-                selectedFileIds.push(file.id);
-            }
-        }
+        var selectedFileIds = _.map(_.filter(viewModel.uploadedFiles, { selected: true }), 'id');
 
         if (selectedFileIds.length === 0) {
             return;
         }
 
         $.ajax({
-                url: '/api/files',
-                method: 'DELETE',
-                data: { fileIds: selectedFileIds }
-            })
-            .done(function () {
-                for (var i = viewModel.uploadedFiles.length - 1; i >= 0; i--) {
-                    if (viewModel.uploadedFiles[i].selected) {
-                        viewModel.uploadedFiles.splice(i, 1);
-                    }
-                }
+            url: '/api/files',
+            method: 'DELETE',
+            data: { fileIds: selectedFileIds }
+        })
+        .done(function () {
+            _.remove(viewModel.uploadedFiles, function (file) {
+                return file.selected;
             });
+        });
+    }
+
+    function downloadFiles() {
+        var selectedFileIds = _.map(_.filter(viewModel.uploadedFiles, { selected: true }), 'id');
+        var downloadUrl;
+
+        if (selectedFileIds.length === 1) {
+            downloadUrl = '/api/files/download/' + selectedFileIds[0];
+        } else if (selectedFileIds.length > 1) {
+            var ids = _.map(selectedFileIds, function (id) { return 'fileIds=' + id; });
+            var downloadUrl = '/api/files/downloadall?' + ids.join('&');
+        }
+
+        window.location.href = downloadUrl;
+        resetFilesSelection();
     }
 
     function addToFileList(file) {
         file.displaySize = readablizeBytes(file.size);
         file.fileImageClass = file.store === 2 ? 'glyphicon glyphicon-cloud' : '';
         viewModel.uploadedFiles.push(file);
+    }
+
+    function resetFilesSelection() {
+        _.forEach(viewModel.uploadedFiles, function (file) {
+            file.selected = false;
+        });
     }
 
     function initRivet() {

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -44,6 +45,13 @@ namespace FileUploadDemo.FileUpload
             EnsureStoreIsInitialized();
 
             return FileMetadataStore.Values;
+        }
+
+        public ICollection<FileMetadata> GetAll(IEnumerable<Guid> fileIds)
+        {
+            EnsureStoreIsInitialized();
+
+            return FileMetadataStore.Values.Where(x => fileIds.Contains(x.Id)).ToList();
         }
 
         public void Save(FileMetadata fileMetadata)

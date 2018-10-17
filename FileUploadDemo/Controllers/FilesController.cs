@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MimeMapping;
+using System.Net.Http.Headers;
+using System.IO.Compression;
 
 namespace FileUploadDemo.Controllers
 {
@@ -84,13 +86,44 @@ namespace FileUploadDemo.Controllers
             {
                 var downloadUrl = await _fileUploadManager.GetAzureFileDownloadLinkAsync(fileMetadata);
 
-                return Redirect(downloadUrl);
+                return RedirectPermanent(downloadUrl);
             }
 
             var fileStream = _fileUploadManager.GetFileContent(fileMetadata);
             var contentType = MimeUtility.GetMimeMapping(fileMetadata.FileName);
 
-            return File(fileStream, contentType);
+            return File(fileStream, contentType, fileMetadata.FileName);
+        }
+
+        [HttpGet("downloadall")]
+        public IActionResult DownloadMultiple([FromQuery]IEnumerable<Guid> fileIds)
+        {
+            var files = _fileMetadataRepository.GetAll(fileIds);
+
+            if (!files.Any())
+            {
+                throw new KeyNotFoundException("No files found with the given IDs");
+            }
+
+            return new FileCallbackResult("application/octet-stream", async (outputStream, _) =>
+            {
+                using (var zipArchive = new ZipArchive(new WriteOnlyStreamWrapper(outputStream), ZipArchiveMode.Create))
+                {
+                    foreach (var file in files)
+                    {
+                        var zipEntry = zipArchive.CreateEntry(file.FileName);
+
+                        using (var zipStream = zipEntry.Open())
+                        using (var stream = _fileUploadManager.GetFileContent(file))
+                        {
+                            await stream.CopyToAsync(zipStream);
+                        }
+                    }
+                }
+            })
+            {
+                FileDownloadName = "MyZipfile.zip"
+            };
         }
 
         [HttpDelete]

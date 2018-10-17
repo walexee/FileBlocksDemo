@@ -9,6 +9,8 @@ namespace FileUploadDemo.FileUpload
 
         ICollection<FileMetadata> GetAll();
 
+        ICollection<FileMetadata> GetAll(IEnumerable<Guid> fileIds);
+
         void Save(FileMetadata fileMetadata);
 
         void Delete(Guid fileId);
