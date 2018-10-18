@@ -41,6 +41,11 @@ namespace FileUploadDemo.FileUpload
             await DoUploadFileBlockAsync(fileBlockInfo, fileContent);
         }
 
+        public FileMetadata GetFileMetadata()
+        {
+            return _fileMetadata;
+        }
+
         public async Task<FileMetadata> CompleteUploadAsync()
         {
             if (_blocksCount == 1)

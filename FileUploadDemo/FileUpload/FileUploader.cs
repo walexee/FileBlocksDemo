@@ -64,6 +64,11 @@ namespace FileUploadDemo.FileUpload
             return _fileMetadata;
         }
 
+        public FileMetadata GetFileMetadata()
+        {
+            return _fileMetadata;
+        }
+
         private async Task DoUploadFileBlock(FileBlockInfo fileBlockInfo, Stream fileContent)
         {
             var filename = GetFileBlockName(fileBlockInfo);

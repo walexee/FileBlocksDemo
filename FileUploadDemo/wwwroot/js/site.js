@@ -5,7 +5,8 @@
         files: [],
         uploadedFiles: [],
         notSupported: false,
-        toAzure: true
+        toAzure: true,
+        paused: false
     };
 
     function init() {
@@ -15,7 +16,7 @@
             target: '/api/Files/upload',
             chunkSize: 1024 * 1024 * 20, // 20MB
             testChunks: false,
-            // simultaneousUploads: 5,
+            simultaneousUploads: 5,
             maxChunkRetries: 5,
             chunkRetryInterval: 200,
             query: function () {
@@ -34,7 +35,7 @@
         initBrowseButtons(flow);
         initDragDrop(flow);
         initFlowEvents(flow);
-        initControlButtons();
+        initControlButtons(flow);
     }
 
     function initBrowseButtons(flow) {
@@ -43,11 +44,30 @@
         flow.assignBrowse($('#btn-browse-images')[0], false, false, { accept: 'image/*' });
     }
 
-    function initControlButtons() {
+    function initControlButtons(flow) {
         $('#btn-delete-files').click(deleteFiles);
         $('#btn-download-files').click(downloadFiles);
-        $('#btn-clear').click(function () {
-            viewModel.files = [];
+
+        $('#btn-pause-download').click(function () {
+            viewModel.paused = !viewModel.paused;
+
+            if (viewModel.paused) {
+                flow.pause();
+            } else {
+                flow.resume();
+            }
+        });
+
+        $('#btn-stop-download').click(function () {
+            flow.cancel();
+
+            var fileUIds = _.map(viewModel.files, 'uid');
+
+            console.log(fileUIds);
+
+            $.post('/api/files/cancelUploads', { fileIds: fileUIds }).done(function () {
+                viewModel.files = [];
+            });
         });
     }
 
@@ -94,25 +114,16 @@
         $.post('/api/files/aggregate/' + flowFile.uniqueIdentifier, {})
             .done(function (file) {
                 // remove from the progress list
-                for (var i = 0; i < viewModel.files.length; i++) {
-                    if (viewModel.files[i].uid === flowFile.uniqueIdentifier) {
-                        viewModel.files.splice(i, 1);
-                    }
-                }
+                remove(viewModel.files, function (f) {
+                    return f.uid === flowFile.uniqueIdentifier;
+                });
 
                 addToFileList(file);
             });
     }
 
     function onFileUploadProgress(flowFile) {
-        var targetFile;
-
-        for (var i = 0; i < viewModel.files.length; i++) {
-            if (viewModel.files[i].uid === flowFile.uniqueIdentifier) {
-                targetFile = viewModel.files[i];
-                break;
-            }
-        }
+        var targetFile = _.find(viewModel.files, { uid: flowFile.uniqueIdentifier });
 
         targetFile.percentUploaded = Math.floor(flowFile.progress() * 100);
     }
@@ -144,7 +155,7 @@
             data: { fileIds: selectedFileIds }
         })
         .done(function () {
-            _.remove(viewModel.uploadedFiles, function (file) {
+            remove(viewModel.uploadedFiles, function (file) {
                 return file.selected;
             });
         });
@@ -158,7 +169,7 @@
             downloadUrl = '/api/files/download/' + selectedFileIds[0];
         } else if (selectedFileIds.length > 1) {
             var ids = _.map(selectedFileIds, function (id) { return 'fileIds=' + id; });
-            var downloadUrl = '/api/files/downloadall?' + ids.join('&');
+            var downloadUrl = '/api/files/downloadAll?' + ids.join('&');
         }
 
         window.location.href = downloadUrl;
@@ -175,6 +186,14 @@
         _.forEach(viewModel.uploadedFiles, function (file) {
             file.selected = false;
         });
+    }
+
+    function remove(list, predicate) {
+        for (var i = list.length - 1; i >= 0; i--) {
+            if (predicate(list[i]) === true) {
+                list.splice(i, 1);
+            }
+        }
     }
 
     function initRivet() {

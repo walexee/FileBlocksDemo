@@ -77,6 +77,12 @@ namespace FileUploadDemo.Controllers
             return ToFileViewModel(fileMetadata);
         }
 
+        [HttpPost("cancelUploads")]
+        public void CancelUploads(FileIdsModel<string> model)
+        {
+            _fileUploadManager.CancelUploads(model.FileIds);
+        }
+
         [HttpGet("download/{fileId}")]
         public async Task<IActionResult> DownloadSingle(Guid fileId)
         {
@@ -95,7 +101,7 @@ namespace FileUploadDemo.Controllers
             return File(fileStream, contentType, fileMetadata.FileName);
         }
 
-        [HttpGet("downloadall")]
+        [HttpGet("downloadAll")]
         public IActionResult DownloadMultiple([FromQuery]IEnumerable<Guid> fileIds)
         {
             var files = _fileMetadataRepository.GetAll(fileIds);
@@ -127,7 +133,7 @@ namespace FileUploadDemo.Controllers
         }
 
         [HttpDelete]
-        public void DeleteFiles(FileIdsModel model)
+        public void DeleteFiles(FileIdsModel<Guid> model)
         {
             _fileUploadManager.DeleteFiles(model.FileIds);
         }

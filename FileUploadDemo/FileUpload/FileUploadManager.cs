@@ -53,13 +53,13 @@ namespace FileUploadDemo.FileUpload
             await uploader.UploadFileBlockAsync(fileBlockInfo, stream);
         }
 
-        public async Task<FileMetadata> CompleteUploadAsync(string fileId)
+        public async Task<FileMetadata> CompleteUploadAsync(string fileUId)
         {
-            _uploaders.TryGetValue(fileId, out var uploader);
+            _uploaders.TryGetValue(fileUId, out var uploader);
 
             if (uploader == null)
             {
-                throw new KeyNotFoundException($"No uploader found for file Id {fileId}");
+                throw new KeyNotFoundException($"No uploader found for file Id {fileUId}");
             }
 
             try
@@ -72,7 +72,7 @@ namespace FileUploadDemo.FileUpload
             }
             finally
             {
-                _uploaders.TryRemove(fileId, out uploader);
+                _uploaders.TryRemove(fileUId, out uploader);
             }
         }
 
@@ -101,6 +101,24 @@ namespace FileUploadDemo.FileUpload
         {
             return _azureAccountManager.GetFileDownloadUrlAsync(fileMetadata);
         }
+
+        public void CancelUploads(IEnumerable<string> fileUIds)
+        {
+            foreach(var uid in fileUIds)
+            {
+                if (!_uploaders.TryRemove(uid, out var uploader))
+                {
+                    continue;
+                }
+
+                var fileMetadata = uploader.GetFileMetadata();
+
+                if (fileMetadata.Store == FileStore.FileSystem)
+                {
+                    DeleteFiles(new Guid[] { fileMetadata.Id });
+                }
+            }
+        }
     }
 
     public interface IFileUploadManager
@@ -116,5 +134,7 @@ namespace FileUploadDemo.FileUpload
         Stream GetFileContent(FileMetadata fileMetadata);
 
         Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata);
+
+        void CancelUploads(IEnumerable<string> fileUIds);
     }
 }

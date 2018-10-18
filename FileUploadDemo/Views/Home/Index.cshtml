@@ -46,9 +46,11 @@
             </div>
         </div>
         <div class="pull-right">
-            <button class="btn btn-default"><span class="glyphicon glyphicon-pause"></span></button>
-            <button class="btn btn-default"><span class="glyphicon glyphicon-stop"></span></button>
-            <button class="btn btn-default" id="btn-clear">Clear</button>
+            <button class="btn btn-default" id="btn-pause-download">
+                <span rv-hide="paused" class="glyphicon glyphicon-pause"></span>
+                <span rv-show="paused" class="glyphicon glyphicon-play"></span>
+            </button>
+            <button class="btn btn-default" id="btn-stop-download"><span class="glyphicon glyphicon-stop"></span></button>
             <button class="btn btn-danger" id="btn-delete-files"><span class="glyphicon glyphicon-trash"></span></button>
             <button class="btn btn-default" id="btn-download-files"><span class="glyphicon glyphicon-download-alt"></span></button>
         </div>

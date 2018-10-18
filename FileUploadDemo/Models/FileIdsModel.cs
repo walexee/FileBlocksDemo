@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace FileUploadDemo.Models
 {
-    public class FileIdsModel
+    public class FileIdsModel<T>
     {
-        public IEnumerable<Guid> FileIds { get; set; }
+        public IEnumerable<T> FileIds { get; set; }
     }
 }

@@ -10,14 +10,11 @@ using System.Threading;
 
 namespace FileUploadDemo.FileUpload
 {
-    public class FileMetadataRepository : IFileMetadataRepository, IDisposable
+    public class FileMetadataRepository : IFileMetadataRepository
     {
         private const string StoreFileName = "files_metadata.json";
         private readonly string StoreFilePath;
         private readonly ConcurrentDictionary<Guid, FileMetadata> FileMetadataStore;
-
-        private readonly System.Timers.Timer _timer;
-        private const int _timerInterval = 1000; // milliseconds
 
         private static int _syncing = 0;
         private static int _storeInitialized = 0;
@@ -27,9 +24,6 @@ namespace FileUploadDemo.FileUpload
             StoreFilePath = Path.Combine(configuration.GetValue<string>("FileStoreDirectory"), StoreFileName);
 
             FileMetadataStore = new ConcurrentDictionary<Guid, FileMetadata>();
-
-            _timer = new System.Timers.Timer(_timerInterval);
-            _timer.Elapsed += SyncFileStore;
         }
 
         public FileMetadata Get(Guid fileId)
@@ -56,24 +50,17 @@ namespace FileUploadDemo.FileUpload
 
         public void Save(FileMetadata fileMetadata)
         {
-            //EnsureStoreIsInitialized();
             FileMetadataStore.AddOrUpdate(fileMetadata.Id, fileMetadata, (key, value) => value);
-            SyncFileStore(null, null);
+            SyncFileStore();
         }
 
         public void Delete(Guid fileId)
         {
             FileMetadataStore.TryRemove(fileId, out var fileInfo);
-            SyncFileStore(null, null);
+            SyncFileStore();
         }
 
-        public void Dispose()
-        {
-            _timer.Elapsed -= SyncFileStore;
-            _timer.Dispose();
-        }
-
-        private void SyncFileStore(object sender, System.Timers.ElapsedEventArgs e)
+        private void SyncFileStore()
         {
             if (0 == Interlocked.Exchange(ref _syncing, 1))
             {
@@ -103,9 +90,6 @@ namespace FileUploadDemo.FileUpload
                         FileMetadataStore.TryAdd(fileMetadata.Id, fileMetadata);
                     }
                 }
-
-                // start timer
-                _timer.Enabled = true;
             }
         }
 

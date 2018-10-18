@@ -8,5 +8,7 @@ namespace FileUploadDemo.FileUpload
         Task<FileMetadata> CompleteUploadAsync();
 
         Task UploadFileBlockAsync(FileBlockInfo fileBlockInfo, Stream fileContent);
+
+        FileMetadata GetFileMetadata();
     }
 }
