@@ -95,7 +95,7 @@ namespace FileUploadDemo.Controllers
                 return RedirectPermanent(downloadUrl);
             }
 
-            var fileStream = _fileUploadManager.GetFileContent(fileMetadata);
+            var fileStream = await _fileUploadManager.GetFileContentAsync(fileMetadata);
             var contentType = MimeUtility.GetMimeMapping(fileMetadata.FileName);
 
             return File(fileStream, contentType, fileMetadata.FileName);
@@ -120,7 +120,7 @@ namespace FileUploadDemo.Controllers
                         var zipEntry = zipArchive.CreateEntry(file.FileName);
 
                         using (var zipStream = zipEntry.Open())
-                        using (var stream = _fileUploadManager.GetFileContent(file))
+                        using (var stream = await _fileUploadManager.GetFileContentAsync(file))
                         {
                             await stream.CopyToAsync(zipStream);
                         }

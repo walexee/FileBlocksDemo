@@ -27,7 +27,7 @@
                     </td>
                 </tr>
 
-                <tr rv-each-file="uploadedFiles" rv-class="file.selected | bootstrapSuccess">
+                <tr rv-each-file="uploadedFiles" rv-class-success="file.selected">
                     <td><input type="checkbox" rv-checked="file.selected" /></td>
                     <td><span rv-class="file.fileImageClass"></span></td>
                     <td>{file.name}</td>

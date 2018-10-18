@@ -90,11 +90,22 @@ namespace FileUploadDemo.FileUpload
             }
         }
 
-        public Stream GetFileContent(FileMetadata fileMetadata)
+        public async Task<Stream> GetFileContentAsync(FileMetadata fileMetadata)
         {
-            var filePath = Path.Combine(fileMetadata.Location, fileMetadata.FileName);
+            if (fileMetadata.Store == FileStore.FileSystem)
+            {
+                var filePath = Path.Combine(fileMetadata.Location, fileMetadata.FileName);
 
-            return File.OpenRead(filePath);
+                return File.OpenRead(filePath);
+            }
+
+            var blobReference = await _azureAccountManager.GetBlobReferenceAsync(fileMetadata);
+
+            var stream = new MemoryStream();
+
+            await blobReference.DownloadToStreamAsync(stream);
+
+            return stream;
         }
 
         public Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata)
@@ -131,7 +142,7 @@ namespace FileUploadDemo.FileUpload
 
         void DeleteFiles(IEnumerable<Guid> fileIds);
 
-        Stream GetFileContent(FileMetadata fileMetadata);
+        Task<Stream> GetFileContentAsync(FileMetadata fileMetadata);
 
         Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata);
 

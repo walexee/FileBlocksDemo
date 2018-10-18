@@ -161,7 +161,9 @@
         });
     }
 
-    function downloadFiles() {
+    function downloadFiles(e) {
+        e.preventDefault();
+
         var selectedFileIds = _.map(_.filter(viewModel.uploadedFiles, { selected: true }), 'id');
         var downloadUrl;
 
@@ -203,10 +205,6 @@
 
         rivets.formatters.width = function (value) {
             return 'width: ' + value + '%;';
-        };
-
-        rivets.formatters.bootstrapSuccess = function (value) {
-            return value === true ? 'success' : '';
         };
 
         rivets.formatters.timeAgo = function (value) {

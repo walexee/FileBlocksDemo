@@ -26,22 +26,18 @@ namespace FileUploadDemo.FileUpload
 
         public async Task<string> GetFileDownloadUrlAsync(FileMetadata fileMetadata)
         {
-            var connectionString = _configuration.GetValue<string>("AzureBlobConnectionString");
-            var account = GetStorageAccount(connectionString);
             var blobReference = await GetBlobReferenceAsync(fileMetadata);
-            var policy = new SharedAccessAccountPolicy
+            var policy = new SharedAccessBlobPolicy
             {
-                Permissions = SharedAccessAccountPermissions.Read,
-                Services = SharedAccessAccountServices.Blob | SharedAccessAccountServices.File,
-                ResourceTypes = SharedAccessAccountResourceTypes.Object,
+                Permissions = SharedAccessBlobPermissions.Read,
                 SharedAccessStartTime = DateTimeOffset.UtcNow.AddMinutes(-15),
-                SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddMinutes(15),
-                Protocols = SharedAccessProtocol.HttpsOrHttp
+                SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddMinutes(1440),
             };
-            var token = account.GetSharedAccessSignature(policy);
-            var uri = Uri.UnescapeDataString(blobReference.Uri.ToString());
 
-            return $"{uri}/{token}";
+            var token = blobReference.GetSharedAccessSignature(policy);
+            var url = Uri.UnescapeDataString(blobReference.Uri.ToString());
+
+            return $"{url}{token}";
         }
 
         private async Task<CloudBlobContainer> GetContainerAsync()
@@ -53,10 +49,10 @@ namespace FileUploadDemo.FileUpload
 
             var requestOptions = new BlobRequestOptions
             {
-                MaximumExecutionTime = TimeSpan.FromMinutes(5),
+                MaximumExecutionTime = TimeSpan.FromMinutes(60),
                 ParallelOperationThreadCount = 5,
-                SingleBlobUploadThresholdInBytes = 1024 * 1024 * 100,
-                ServerTimeout = TimeSpan.FromMinutes(5)
+                SingleBlobUploadThresholdInBytes = 1024 * 1024 * 40,
+                ServerTimeout = TimeSpan.FromMinutes(60),
             };
 
             var operationContext = new OperationContext
