@@ -76,17 +76,32 @@ namespace FileUploadDemo.FileUpload
             }
         }
 
-        public void DeleteFiles(IEnumerable<Guid> fileIds)
+        public async Task DeleteFilesAsync(IEnumerable<Guid> fileIds)
         {
             var storageDirectory = _configuration.GetValue<string>("FileStoreDirectory");
 
             foreach (var fileId in fileIds)
             {
+                var file = _fileMetadataRepository.Get(fileId);
                 var fileDirectory = Path.Combine(storageDirectory, fileId.ToString());
 
-                _fileMetadataRepository.Delete(fileId);
+                if (Directory.Exists(fileDirectory))
+                {
+                    Directory.Delete(fileDirectory, true);
+                }
 
-                Directory.Delete(fileDirectory, true);
+                if (file == null)
+                {
+                    continue;
+                }
+
+                if (file.Store == FileStore.Azure)
+                {
+                    var blobReference = await _azureAccountManager.GetBlobReferenceAsync(file);
+                    await blobReference.DeleteIfExistsAsync();
+                }
+
+                _fileMetadataRepository.Delete(file.Id);
             }
         }
 
@@ -101,11 +116,7 @@ namespace FileUploadDemo.FileUpload
 
             var blobReference = await _azureAccountManager.GetBlobReferenceAsync(fileMetadata);
 
-            var stream = new MemoryStream();
-
-            await blobReference.DownloadToStreamAsync(stream);
-
-            return stream;
+            return await blobReference.OpenReadAsync();
         }
 
         public Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata)
@@ -113,7 +124,7 @@ namespace FileUploadDemo.FileUpload
             return _azureAccountManager.GetFileDownloadUrlAsync(fileMetadata);
         }
 
-        public void CancelUploads(IEnumerable<string> fileUIds)
+        public async Task CancelUploadsAsync(IEnumerable<string> fileUIds)
         {
             foreach(var uid in fileUIds)
             {
@@ -124,10 +135,7 @@ namespace FileUploadDemo.FileUpload
 
                 var fileMetadata = uploader.GetFileMetadata();
 
-                if (fileMetadata.Store == FileStore.FileSystem)
-                {
-                    DeleteFiles(new Guid[] { fileMetadata.Id });
-                }
+                await DeleteFilesAsync(new Guid[] { fileMetadata.Id });
             }
         }
     }
@@ -140,12 +148,12 @@ namespace FileUploadDemo.FileUpload
 
         Task<FileMetadata> CompleteUploadAsync(string fileId);
 
-        void DeleteFiles(IEnumerable<Guid> fileIds);
+        Task DeleteFilesAsync(IEnumerable<Guid> fileIds);
 
         Task<Stream> GetFileContentAsync(FileMetadata fileMetadata);
 
         Task<string> GetAzureFileDownloadLinkAsync(FileMetadata fileMetadata);
 
-        void CancelUploads(IEnumerable<string> fileUIds);
+        Task CancelUploadsAsync(IEnumerable<string> fileUIds);
     }
 }

@@ -1,13 +1,12 @@
 ﻿using FileUploadDemo.FileUpload;
 using FileUploadDemo.Models;
 using Microsoft.AspNetCore.Mvc;
+using MimeMapping;
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
-using MimeMapping;
-using System.Net.Http.Headers;
-using System.IO.Compression;
 
 namespace FileUploadDemo.Controllers
 {
@@ -34,6 +33,7 @@ namespace FileUploadDemo.Controllers
         {
             return _fileMetadataRepository
                 .GetAll()
+                .OrderBy(f => f.CreateDateUtc)
                 .Select(f =>ToFileViewModel(f)).ToList();
         }
 
@@ -78,9 +78,9 @@ namespace FileUploadDemo.Controllers
         }
 
         [HttpPost("cancelUploads")]
-        public void CancelUploads(FileIdsModel<string> model)
+        public Task CancelUploads(FileIdsModel<string> model)
         {
-            _fileUploadManager.CancelUploads(model.FileIds);
+            return _fileUploadManager.CancelUploadsAsync(model.FileIds);
         }
 
         [HttpGet("download/{fileId}")]
@@ -123,6 +123,7 @@ namespace FileUploadDemo.Controllers
                         using (var stream = await _fileUploadManager.GetFileContentAsync(file))
                         {
                             await stream.CopyToAsync(zipStream);
+                            await zipStream.FlushAsync();
                         }
                     }
                 }
@@ -133,9 +134,9 @@ namespace FileUploadDemo.Controllers
         }
 
         [HttpDelete]
-        public void DeleteFiles(FileIdsModel<Guid> model)
+        public Task DeleteFiles(FileIdsModel<Guid> model)
         {
-            _fileUploadManager.DeleteFiles(model.FileIds);
+            return _fileUploadManager.DeleteFilesAsync(model.FileIds);
         }
 
         private FileViewModel ToFileViewModel(FileMetadata fileMetadata)

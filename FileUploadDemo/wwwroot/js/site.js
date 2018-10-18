@@ -5,7 +5,7 @@
         files: [],
         uploadedFiles: [],
         notSupported: false,
-        toAzure: true,
+        toAzure: false,
         paused: false
     };
 
@@ -61,13 +61,14 @@
         $('#btn-stop-download').click(function () {
             flow.cancel();
 
-            var fileUIds = _.map(viewModel.files, 'uid');
+            // clear up all chunks after 2 secs
+            setTimeout(function () {
+                var fileUIds = _.map(viewModel.files, 'uid');
 
-            console.log(fileUIds);
-
-            $.post('/api/files/cancelUploads', { fileIds: fileUIds }).done(function () {
-                viewModel.files = [];
-            });
+                $.post('/api/files/cancelUploads', { fileIds: fileUIds }).done(function () {
+                    viewModel.files = [];
+                });
+            }, 2000);
         });
     }
 
@@ -97,7 +98,10 @@
         flow.on('filesSubmitted', function (file) {
             flow.upload();
         });
-        
+        flow.on('error', function (message, file, chunk) {
+            flow.pause();
+            viewModel.paused = true;
+        });
     }
 
     function onFileAdded(flowFile) {
