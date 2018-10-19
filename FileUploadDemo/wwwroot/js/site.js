@@ -1,12 +1,12 @@
-﻿// Write your JavaScript code.
-
-(function () {
+﻿(function () {
     var viewModel = {
         files: [],
         uploadedFiles: [],
         notSupported: false,
         toAzure: false,
-        paused: false
+        paused: false,
+        deleteFiles: deleteFiles,
+        downloadFiles: downloadFiles
     };
 
     function init() {
@@ -35,20 +35,8 @@
         initBrowseButtons(flow);
         initDragDrop(flow);
         initFlowEvents(flow);
-        initControlButtons(flow);
-    }
 
-    function initBrowseButtons(flow) {
-        flow.assignBrowse($('#btn-browse-files')[0]);
-        flow.assignBrowse($('#btn-browse-folders')[0], true);
-        flow.assignBrowse($('#btn-browse-images')[0], false, false, { accept: 'image/*' });
-    }
-
-    function initControlButtons(flow) {
-        $('#btn-delete-files').click(deleteFiles);
-        $('#btn-download-files').click(downloadFiles);
-
-        $('#btn-pause-download').click(function () {
+        viewModel.pauseDownload = function () {
             viewModel.paused = !viewModel.paused;
 
             if (viewModel.paused) {
@@ -56,9 +44,9 @@
             } else {
                 flow.resume();
             }
-        });
+        };
 
-        $('#btn-stop-download').click(function () {
+        viewModel.stopDownload = function () {
             flow.cancel();
 
             // clear up all chunks after 2 secs
@@ -69,7 +57,13 @@
                     viewModel.files = [];
                 });
             }, 2000);
-        });
+        };
+    }
+
+    function initBrowseButtons(flow) {
+        flow.assignBrowse($('#btn-browse-files')[0]);
+        flow.assignBrowse($('#btn-browse-folders')[0], true);
+        flow.assignBrowse($('#btn-browse-images')[0], false, false, { accept: 'image/*' });
     }
 
     function initDragDrop(flow) {
